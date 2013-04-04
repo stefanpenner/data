@@ -296,13 +296,11 @@ DS.Model = Ember.Object.extend(Ember.Evented, LoadPromise, {
     this.send('willCommit');
     this.get('store').scheduleSave(this);
 
-    var promise = new Ember.RSVP.Promise();
+    var model = this;
 
-    this.one('didCommit', this, function() {
-      promise.resolve(this);
+    return new Ember.RSVP.Promise(function(resolve, reject){
+      model.one('didCommit', model, resolve._fulfill);
     });
-
-    return promise;
   },
 
   // FOR USE DURING COMMIT PROCESS

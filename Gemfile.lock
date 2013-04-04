@@ -24,13 +24,17 @@ GIT
       rake (~> 10.0.0)
       thor
 
+PATH
+  remote: ../ember.js
+  specs:
+    ember-source (1.0.0.rc1.2)
+      handlebars-source (>= 1.0.0.rc3, < 1.0.0.rc4)
+
 GEM
   remote: https://rubygems.org/
   specs:
     colored (1.2)
     diff-lcs (1.2.1)
-    ember-source (1.0.0.rc1.4)
-      handlebars-source (>= 1.0.0.rc3, < 1.0.0.rc4)
     execjs (1.4.0)
       multi_json (~> 1.0)
     grit (2.5.0)
@@ -60,5 +64,5 @@ PLATFORMS
 
 DEPENDENCIES
   ember-dev!
-  ember-source (= 1.0.0.rc1.4)
+  ember-source!
   rake-pipeline!

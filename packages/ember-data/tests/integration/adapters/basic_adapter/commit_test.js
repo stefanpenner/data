@@ -59,10 +59,15 @@ test("After creating a record, calling `save` on it will save it using the Basic
   };
 
   var person = Person.createRecord({ firstName: "Igor", lastName: "Terzic" });
-  person.save().then(async(function(p) {
-    strictEqual(p, person);
-    equal(p.get('isSaving'), false);
-  }));
+
+  Ember.run(function(){
+    person.save().then(function(p) {
+      strictEqual(p, person);
+      equal(p.get('isSaving'), false);
+    }, function(reason) {
+      ok(false, 'should not fail');
+    });
+  });
 });
 
 test("Calling `didSave` with a hash will update a newly created record", function() {
