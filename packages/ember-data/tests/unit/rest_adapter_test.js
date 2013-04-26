@@ -18,19 +18,33 @@ module("the REST adapter", {
 
     adapter = Adapter.create({
       ajax: function(url, type, hash) {
-        var success = hash.success, self = this;
+        var self = this;
+        return new Ember.RSVP.Promise(function(resolve, reject){
+          hash = hash || {};
+          var success = hash.success;
 
-        hash.context = adapter;
+          hash.context = adapter;
 
-        ajaxUrl = url;
-        ajaxType = type;
-        ajaxHash = hash;
+          ajaxUrl = url;
+          ajaxType = type;
+          ajaxHash = hash;
 
-        if (success) {
           hash.success = function(json) {
-            success.call(self, json);
+            Ember.run(function(){
+              if (success) {
+                success.call(self, json);
+              } else {
+                resolve(json);
+              }
+            });
           };
-        }
+
+          hash.error = function(xhr) {
+            Ember.run(function(){
+              reject(xhr);
+            });
+          };
+        });
       }
     });
 
@@ -1003,6 +1017,12 @@ test("When a record with a belongsTo is saved the foreign key should be sent.", 
   ajaxHash.success({ person: { name: 'Sam Woodard', person_type_id: 1}});
 });
 
+function stateEquals(entity, expectedState) {
+  var actualState = get(person, 'stateManager.currentState.name');
+
+  equal(actualState, expectedState, 'Expected state should have been: ' + expectedState+ ' but was: ' +  actualState);
+}
+
 test("creating a record with a 422 error marks the records as invalid", function(){
   person = store.createRecord(Person, { name: "" });
   store.commit();
@@ -1014,7 +1034,8 @@ test("creating a record with a 422 error marks the records as invalid", function
 
   ajaxHash.error.call(ajaxHash.context, mockXHR);
 
-  expectState('valid', false);
+  stateEquals(person, 'invalid');
+
   deepEqual(person.get('errors'), { name: ["can't be blank"]}, "the person has the errors");
 });
 
@@ -1034,7 +1055,8 @@ test("updating a record with a 422 error marks the records as invalid", function
 
   ajaxHash.error.call(ajaxHash.context, mockXHR);
 
-  expectState('valid', false);
+  stateEquals(person, 'invalid');
+
   deepEqual(person.get('errors'), { name: ["can't be blank"], updatedAt: ["can't be blank"] }, "the person has the errors");
 });
 
@@ -1065,5 +1087,5 @@ test("updating a record with a 500 error marks the record as error", function() 
 
   ajaxHash.error.call(ajaxHash.context, mockXHR);
 
-  expectState('error');
+  stateEquals(person, 'error');
 });

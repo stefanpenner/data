@@ -120,20 +120,18 @@ DS.RESTAdapter = DS.Adapter.extend({
 
   createRecord: function(store, type, record) {
     var root = this.rootForType(type);
-
+    var adapter = this;
     var data = {};
+
     data[root] = this.serialize(record, { includeId: true });
 
-    return this.ajax(this.buildURL(root), "POST", {
-      data: data,
-      success: function(json) {
-        Ember.run(this, function(){
-          this.didCreateRecord(store, type, record, json);
-        });
-      },
-      error: function(xhr) {
-        this.didError(store, type, record, xhr);
-      }
+    return this.ajax(this.buildURL(root), "POST", { data: data }).then(function(json){
+      Ember.run(adapter, function() {
+        this.didCreateRecord(store, type, record, json);
+      });
+    }, function(xhr) {
+      adapter.didError(store, type, record, xhr);
+      throw xhr;
     });
   },
 
@@ -164,20 +162,17 @@ DS.RESTAdapter = DS.Adapter.extend({
   updateRecord: function(store, type, record) {
     var id = get(record, 'id');
     var root = this.rootForType(type);
+    var adapter = this;
 
     var data = {};
     data[root] = this.serialize(record);
 
-    return this.ajax(this.buildURL(root, id), "PUT", {
-      data: data,
-      success: function(json) {
-        Ember.run(this, function(){
-          this.didUpdateRecord(store, type, record, json);
-        });
-      },
-      error: function(xhr) {
-        this.didError(store, type, record, xhr);
-      }
+    return this.ajax(this.buildURL(root, id), "PUT",{data: data}).then(function(json){
+      Ember.run(this, function(){
+        adapter.didUpdateRecord(store, type, record, json);
+      });
+    }, function(xhr){
+      adapter.didError(store, type, record, xhr);
     });
   },
 
@@ -190,7 +185,9 @@ DS.RESTAdapter = DS.Adapter.extend({
         plural = this.pluralize(root);
 
     var data = {};
+
     data[plural] = [];
+
     records.forEach(function(record) {
       data[plural].push(this.serialize(record, { includeId: true }));
     }, this);
@@ -247,14 +244,14 @@ DS.RESTAdapter = DS.Adapter.extend({
   },
 
   find: function(store, type, id) {
-    var root = this.rootForType(type);
+    var root = this.rootForType(type), adapter = this;
 
-    return this.ajax(this.buildURL(root, id), "GET", {
-      success: function(json) {
-        Ember.run(this, function(){
-          this.didFindRecord(store, type, json, id);
-        });
-      }
+    return this.ajax(this.buildURL(root, id), "GET").then(function(json){
+      Ember.run(adapter, function(){
+        this.didFindRecord(store, type, json, id);
+      });
+
+      return json;
     });
   },
 
