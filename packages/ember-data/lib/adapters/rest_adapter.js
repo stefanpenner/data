@@ -8,7 +8,7 @@ require('ember-data/serializers/rest_serializer');
   @submodule data-adapters
 */
 
-var get = Ember.get, set = Ember.set;
+var get = Ember.get, set = Ember.set, resolve = Ember.RSVP.resolve;
 
 /**
   The REST adapter allows your store to communicate with an HTTP server by
@@ -124,7 +124,7 @@ DS.RESTAdapter = DS.Adapter.extend({
     var data = {};
     data[root] = this.serialize(record, { includeId: true });
 
-    this.ajax(this.buildURL(root), "POST", {
+    return this.ajax(this.buildURL(root), "POST", {
       data: data,
       success: function(json) {
         Ember.run(this, function(){
@@ -151,7 +151,7 @@ DS.RESTAdapter = DS.Adapter.extend({
       data[plural].push(this.serialize(record, { includeId: true }));
     }, this);
 
-    this.ajax(this.buildURL(root), "POST", {
+    return this.ajax(this.buildURL(root), "POST", {
       data: data,
       success: function(json) {
         Ember.run(this, function(){
@@ -168,7 +168,7 @@ DS.RESTAdapter = DS.Adapter.extend({
     var data = {};
     data[root] = this.serialize(record);
 
-    this.ajax(this.buildURL(root, id), "PUT", {
+    return this.ajax(this.buildURL(root, id), "PUT", {
       data: data,
       success: function(json) {
         Ember.run(this, function(){
@@ -195,7 +195,7 @@ DS.RESTAdapter = DS.Adapter.extend({
       data[plural].push(this.serialize(record, { includeId: true }));
     }, this);
 
-    this.ajax(this.buildURL(root, "bulk"), "PUT", {
+    return this.ajax(this.buildURL(root, "bulk"), "PUT", {
       data: data,
       success: function(json) {
         Ember.run(this, function(){
@@ -209,7 +209,7 @@ DS.RESTAdapter = DS.Adapter.extend({
     var id = get(record, 'id');
     var root = this.rootForType(type);
 
-    this.ajax(this.buildURL(root, id), "DELETE", {
+    return this.ajax(this.buildURL(root, id), "DELETE", {
       success: function(json) {
         Ember.run(this, function(){
           this.didDeleteRecord(store, type, record, json);
@@ -236,7 +236,7 @@ DS.RESTAdapter = DS.Adapter.extend({
       data[plural].push(serializer.serializeId( get(record, 'id') ));
     });
 
-    this.ajax(this.buildURL(root, 'bulk'), "DELETE", {
+    return this.ajax(this.buildURL(root, 'bulk'), "DELETE", {
       data: data,
       success: function(json) {
         Ember.run(this, function(){
@@ -249,7 +249,7 @@ DS.RESTAdapter = DS.Adapter.extend({
   find: function(store, type, id) {
     var root = this.rootForType(type);
 
-    this.ajax(this.buildURL(root, id), "GET", {
+    return this.ajax(this.buildURL(root, id), "GET", {
       success: function(json) {
         Ember.run(this, function(){
           this.didFindRecord(store, type, json, id);
@@ -261,7 +261,7 @@ DS.RESTAdapter = DS.Adapter.extend({
   findAll: function(store, type, since) {
     var root = this.rootForType(type);
 
-    this.ajax(this.buildURL(root), "GET", {
+    return this.ajax(this.buildURL(root), "GET", {
       data: this.sinceQuery(since),
       success: function(json) {
         Ember.run(this, function(){
@@ -274,7 +274,7 @@ DS.RESTAdapter = DS.Adapter.extend({
   findQuery: function(store, type, query, recordArray) {
     var root = this.rootForType(type);
 
-    this.ajax(this.buildURL(root), "GET", {
+    return this.ajax(this.buildURL(root), "GET", {
       data: query,
       success: function(json) {
         Ember.run(this, function(){
@@ -288,7 +288,7 @@ DS.RESTAdapter = DS.Adapter.extend({
     var root = this.rootForType(type);
     ids = this.serializeIds(ids);
 
-    this.ajax(this.buildURL(root), "GET", {
+    return this.ajax(this.buildURL(root), "GET", {
       data: {ids: ids},
       success: function(json) {
         Ember.run(this, function(){
@@ -326,17 +326,21 @@ DS.RESTAdapter = DS.Adapter.extend({
   },
 
   ajax: function(url, type, hash) {
-    hash.url = url;
-    hash.type = type;
-    hash.dataType = 'json';
-    hash.contentType = 'application/json; charset=utf-8';
-    hash.context = this;
+    try {
+      hash.url = url;
+      hash.type = type;
+      hash.dataType = 'json';
+      hash.contentType = 'application/json; charset=utf-8';
+      hash.context = this;
 
-    if (hash.data && type !== 'GET') {
-      hash.data = JSON.stringify(hash.data);
+      if (hash.data && type !== 'GET') {
+        hash.data = JSON.stringify(hash.data);
+      }
+
+      return resolve(jQuery.ajax(hash));
+    } catch (error) {
+      return resolve(error);
     }
-
-    jQuery.ajax(hash);
   },
 
   url: "",
