@@ -31,11 +31,7 @@ module("the REST adapter", {
 
           hash.success = function(json) {
             Ember.run(function(){
-              if (success) {
-                success.call(self, json);
-              } else {
-                resolve(json);
-              }
+              resolve(json);
             });
           };
 
