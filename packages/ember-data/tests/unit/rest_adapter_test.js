@@ -5,6 +5,20 @@ var Person, person, people;
 var Role, role, roles;
 var Group, group;
 
+function stateEquals(entity, expectedState) {
+  var actualState = get(entity, 'stateManager.currentPath');
+
+  actualState = actualState && actualState.replace(/^rootState\./,'');
+  equal(expectedState, actualState, 'Expected state should have been: ' + expectedState+ ' but was: ' +  actualState + ' on: ' + entity);
+}
+
+function statesEqual(entities, expectedState) {
+  entities.forEach(function(entity){
+    stateEquals(entity, expectedState);
+  });
+}
+
+
 module("the REST adapter", {
   setup: function() {
     ajaxUrl = undefined;
@@ -103,21 +117,6 @@ var expectData = function(hash) {
   deepEqual(hash, ajaxHash.data, "the hash was passed along");
 };
 
-var expectState = function(state, value, p) {
-  p = p || person;
-
-  if (value === undefined) { value = true; }
-
-  var flag = "is" + state.charAt(0).toUpperCase() + state.substr(1);
-  equal(get(p, flag), value, "the person is " + (value === false ? "not " : "") + state);
-};
-
-var expectStates = function(state, value) {
-  people.forEach(function(person) {
-    expectState(state, value, person);
-  });
-};
-
 test("Calling ajax() calls JQuery.ajax with json data", function() {
   var adapter, ajaxHash, oldJQueryAjax = jQuery.ajax;
 
@@ -159,16 +158,16 @@ test("Calling ajax() calls JQuery.ajax with json data", function() {
 test("creating a person makes a POST to /people, with the data hash", function() {
   person = store.createRecord(Person, { name: "Tom Dale" });
 
-  expectState('new');
+  stateEquals(person, 'loaded.created.uncommitted');
   store.commit();
-  expectState('saving');
+  stateEquals(person, 'loaded.created.inFlight');
 
   expectUrl("/people", "the collection at the plural of the model name");
   expectType("POST");
   expectData({ person: { name: "Tom Dale", group_id: null } });
 
   ajaxHash.success({ person: { id: 1, name: "Tom Dale" } });
-  expectState('saving', false);
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 1), "it is now possible to retrieve the person by the ID supplied");
 });
@@ -176,9 +175,9 @@ test("creating a person makes a POST to /people, with the data hash", function()
 test("singular creations can sideload data", function() {
   person = store.createRecord(Person, { name: "Tom Dale" });
 
-  expectState('new');
+  stateEquals(person, 'loaded.created.uncommitted');
   store.commit();
-  expectState('saving');
+  stateEquals(person, 'loaded.created.inFlight');
 
   expectUrl("/people", "the collection at the plural of the model name");
   expectType("POST");
@@ -189,7 +188,7 @@ test("singular creations can sideload data", function() {
     groups: [{ id: 1, name: "Group 1" }]
   });
 
-  expectState('saving', false);
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 1), "it is now possible to retrieve the person by the ID supplied");
 
@@ -202,22 +201,21 @@ test("updating a person makes a PUT to /people/:id with the data hash", function
 
   person = store.find(Person, 1);
 
-  expectState('new', false);
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
-  set(person, 'name', "Brohuda Brokatz");
+  set(person, 'name', 'Brohuda Brokatz');
 
-  expectState('dirty');
+  stateEquals(person, 'loaded.updated.uncommitted');
   store.commit();
-  expectState('saving');
+  stateEquals(person, 'loaded.updated.inFlight');
 
   expectUrl("/people/1", "the plural of the model name with its ID");
   expectType("PUT");
   expectData({ person: { name: "Brohuda Brokatz", group_id: null } });
 
   ajaxHash.success({ person: { id: 1, name: "Brohuda Brokatz" } });
-  expectState('saving', false);
+
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 1), "the same person is retrieved by the same ID");
   equal(get(person, 'name'), "Brohuda Brokatz", "the hash should be updated");
@@ -228,21 +226,22 @@ test("updates are not required to return data", function() {
 
   person = store.find(Person, 1);
 
-  expectState('new', false);
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
-  set(person, 'name', "Brohuda Brokatz");
+  set(person, 'name', 'Brohuda Brokatz');
 
-  expectState('dirty');
+  stateEquals(person, 'loaded.updated.uncommitted');
+
   store.commit();
-  expectState('saving');
+
+  stateEquals(person, 'loaded.updated.inFlight');
 
   expectUrl("/people/1", "the plural of the model name with its ID");
   expectType("PUT");
 
   ajaxHash.success();
-  expectState('saving', false);
+
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 1), "the same person is retrieved by the same ID");
   equal(get(person, 'name'), "Brohuda Brokatz", "the data is preserved");
@@ -255,15 +254,12 @@ test("singular updates can sideload data", function() {
 
   person = store.find(Person, 1);
 
-  expectState('new', false);
-  expectState('loaded');
-  expectState('dirty', false);
-
+  stateEquals(person, 'loaded.saved');
   set(person, 'name', "Brohuda Brokatz");
 
-  expectState('dirty');
+  stateEquals(person, 'loaded.updated.uncommitted');
   store.commit();
-  expectState('saving');
+  stateEquals(person, 'loaded.updated.inFlight');
 
   expectUrl("/people/1", "the plural of the model name with its ID");
   expectType("PUT");
@@ -273,7 +269,7 @@ test("singular updates can sideload data", function() {
     groups: [{ id: 1, name: "Group 1" }]
   });
 
-  expectState('saving', false);
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 1), "the same person is retrieved by the same ID");
 
@@ -286,22 +282,22 @@ test("deleting a person makes a DELETE to /people/:id", function() {
 
   person = store.find(Person, 1);
 
-  expectState('new', false);
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
   person.deleteRecord();
 
-  expectState('dirty');
-  expectState('deleted');
+  stateEquals(person, 'deleted.uncommitted');
+
   store.commit();
-  expectState('saving');
+
+  stateEquals(person, 'deleted.inFlight');
 
   expectUrl("/people/1", "the plural of the model name with its ID");
   expectType("DELETE");
 
   ajaxHash.success();
-  expectState('deleted');
+
+  stateEquals(person, 'deleted.saved');
 });
 
 test("singular deletes can sideload data", function() {
@@ -311,16 +307,13 @@ test("singular deletes can sideload data", function() {
 
   person = store.find(Person, 1);
 
-  expectState('new', false);
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
   person.deleteRecord();
 
-  expectState('dirty');
-  expectState('deleted');
+  stateEquals(person, 'deleted.uncommitted');
   store.commit();
-  expectState('saving');
+  stateEquals(person, 'deleted.inFlight');
 
   expectUrl("/people/1", "the plural of the model name with its ID");
   expectType("DELETE");
@@ -329,7 +322,7 @@ test("singular deletes can sideload data", function() {
     groups: [{ id: 1, name: "Group 1" }]
   });
 
-  expectState('deleted');
+  stateEquals('deleted.saved');
 
   group = store.find(Group, 1);
   equal(get(group, 'name'), "Group 1", "the data sideloaded successfully");
@@ -360,8 +353,7 @@ test("finding all people makes a GET to /people", function() {
 
   person = people.objectAt(0);
 
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 1), "the record is now in the store, and can be looked up by ID without another Ajax request");
 });
@@ -380,8 +372,7 @@ test("finding all can sideload data", function() {
   people = get(groups.objectAt(0), 'people');
   person = people.objectAt(0);
 
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 1), "the record is now in the store, and can be looked up by ID without another Ajax request");
 });
@@ -404,8 +395,7 @@ test("finding all people with since makes a GET to /people", function() {
 
   person = people.objectAt(1);
 
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 2), "the record is now in the store, and can be looked up by ID without another Ajax request");
 
@@ -445,8 +435,7 @@ test("meta and since are configurable", function() {
 
   person = people.objectAt(1);
 
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 2), "the record is now in the store, and can be looked up by ID without another Ajax request");
 });
@@ -454,14 +443,14 @@ test("meta and since are configurable", function() {
 test("finding a person by ID makes a GET to /people/:id", function() {
   person = store.find(Person, 1);
 
-  expectState('loaded', false);
+  stateEquals(person, 'loading');
+
   expectUrl("/people/1", "the plural of the model name with the ID requested");
   expectType("GET");
 
   ajaxHash.success({ person: { id: 1, name: "Yehuda Katz" } });
 
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 1), "the record is now in the store, and can be looked up by ID without another Ajax request");
 });
@@ -469,14 +458,13 @@ test("finding a person by ID makes a GET to /people/:id", function() {
 test("finding a person by an ID-alias populates the store", function() {
   person = store.find(Person, 'me');
 
-  expectState('loaded', false);
+  stateEquals(person, 'loading');
   expectUrl("/people/me", "the plural of the model name with the ID requested");
   expectType("GET");
 
   ajaxHash.success({ person: { id: 1, name: "Yehuda Katz" } });
 
-  expectState('loaded');
-  expectState('dirty', false);
+  stateEquals(person, 'loaded.saved');
 
   equal(person, store.find(Person, 'me'), "the record is now in the store, and can be looked up by the alias without another Ajax request");
 });
@@ -703,16 +691,17 @@ test("creating several people (with bulkCommit) makes a POST to /people, with a 
 
   people = [ tom, yehuda ];
 
-  expectStates('new');
+  statesEqual(people, 'loaded.created.uncommitted');
   store.commit();
-  expectStates('saving');
+  statesEqual(people, 'loaded.created.inFlight');
 
   expectUrl("/people", "the collection at the plural of the model name");
   expectType("POST");
   expectData({ people: [ { name: "Tom Dale", group_id: null }, { name: "Yehuda Katz", group_id: null } ] });
 
   ajaxHash.success({ people: [ { id: 1, name: "Tom Dale" }, { id: 2, name: "Yehuda Katz" } ] });
-  expectStates('saving', false);
+
+  statesEqual(people, 'loaded.saved');
 
   equal(tom, store.find(Person, 1), "it is now possible to retrieve the person by the ID supplied");
   equal(yehuda, store.find(Person, 2), "it is now possible to retrieve the person by the ID supplied");
@@ -728,9 +717,9 @@ test("bulk commits can sideload data", function() {
 
   people = [ tom, yehuda ];
 
-  expectStates('new');
+  statesEqual(people, 'loaded.created.uncommitted');
   store.commit();
-  expectStates('saving');
+  statesEqual(people, 'loaded.created.inFlight');
 
   expectUrl("/people", "the collection at the plural of the model name");
   expectType("POST");
@@ -741,7 +730,7 @@ test("bulk commits can sideload data", function() {
     groups: [ { id: 1, name: "Group 1" } ]
   });
 
-  expectStates('saving', false);
+  statesEqual(people, 'loaded.saved');
 
   equal(tom, store.find(Person, 1), "it is now possible to retrieve the person by the ID supplied");
   equal(yehuda, store.find(Person, 2), "it is now possible to retrieve the person by the ID supplied");
@@ -763,16 +752,15 @@ test("updating several people (with bulkCommit) makes a PUT to /people/bulk with
 
   people = [ yehuda, carl ];
 
-  expectStates('new', false);
-  expectStates('loaded');
-  expectStates('dirty', false);
+  statesEqual(people, 'loaded.saved');
 
   set(yehuda, 'name', "Brohuda Brokatz");
   set(carl, 'name', "Brocarl Brolerche");
 
-  expectStates('dirty');
+  statesEqual(people, 'loaded.updated.uncommitted');
   store.commit();
-  expectStates('saving');
+
+  statesEqual(people, 'loaded.updated.inFlight');
 
   expectUrl("/people/bulk", "the collection at the plural of the model name");
   expectType("PUT");
@@ -783,7 +771,7 @@ test("updating several people (with bulkCommit) makes a PUT to /people/bulk with
     { id: 2, name: "Brocarl Brolerche" }
   ]});
 
-  expectStates('saving', false);
+  statesEqual(people, 'loaded.saved');
 
   equal(yehuda, store.find(Person, 1), "the same person is retrieved by the same ID");
   equal(carl, store.find(Person, 2), "the same person is retrieved by the same ID");
@@ -804,16 +792,14 @@ test("bulk updates can sideload data", function() {
 
   people = [ yehuda, carl ];
 
-  expectStates('new', false);
-  expectStates('loaded');
-  expectStates('dirty', false);
+  statesEqual(people, 'loaded.saved');
 
   set(yehuda, 'name', "Brohuda Brokatz");
   set(carl, 'name', "Brocarl Brolerche");
 
-  expectStates('dirty');
+  statesEqual(people, 'loaded.updated.uncommitted');
   store.commit();
-  expectStates('saving');
+  statesEqual(people, 'loaded.updated.inFlight');
 
   expectUrl("/people/bulk", "the collection at the plural of the model name");
   expectType("PUT");
@@ -827,7 +813,7 @@ test("bulk updates can sideload data", function() {
     groups: [{ id: 1, name: "Group 1" }]
   });
 
-  expectStates('saving', false);
+  statesEqual(people, 'loaded.saved');
 
   equal(yehuda, store.find(Person, 1), "the same person is retrieved by the same ID");
   equal(carl, store.find(Person, 2), "the same person is retrieved by the same ID");
@@ -849,17 +835,14 @@ test("deleting several people (with bulkCommit) makes a DELETE to /people/bulk",
 
   people = [ yehuda, carl ];
 
-  expectStates('new', false);
-  expectStates('loaded');
-  expectStates('dirty', false);
+  statesEqual(people, 'loaded.saved');
 
   yehuda.deleteRecord();
   carl.deleteRecord();
 
-  expectStates('dirty');
-  expectStates('deleted');
+  statesEqual(people, 'deleted.uncommitted');
   store.commit();
-  expectStates('saving');
+  statesEqual(people, 'deleted.inFlight');
 
   expectUrl("/people/bulk", "the collection at the plural of the model name with 'delete'");
   expectType("DELETE");
@@ -867,9 +850,7 @@ test("deleting several people (with bulkCommit) makes a DELETE to /people/bulk",
 
   ajaxHash.success();
 
-  expectStates('saving', false);
-  expectStates('deleted');
-  expectStates('dirty', false);
+  statesEqual(people, 'deleted.saved');
 });
 
 test("bulk deletes can sideload data", function() {
@@ -887,17 +868,14 @@ test("bulk deletes can sideload data", function() {
 
   people = [ yehuda, carl ];
 
-  expectStates('new', false);
-  expectStates('loaded');
-  expectStates('dirty', false);
+  statesEqual(people, 'loaded.saved');
 
   yehuda.deleteRecord();
   carl.deleteRecord();
 
-  expectStates('dirty');
-  expectStates('deleted');
+  statesEqual(people, 'deleted.uncommitted');
   store.commit();
-  expectStates('saving');
+  statesEqual(people, 'deleted.inFlight');
 
   expectUrl("/people/bulk", "the collection at the plural of the model name with 'delete'");
   expectType("DELETE");
@@ -907,9 +885,7 @@ test("bulk deletes can sideload data", function() {
     groups: [{ id: 1, name: "Group 1" }]
   });
 
-  expectStates('saving', false);
-  expectStates('deleted');
-  expectStates('dirty', false);
+  statesEqual(people, 'deleted.saved');
 
   group = store.find(Group, 1);
   equal(get(group, 'name'), "Group 1", "the data sideloaded successfully");
@@ -1013,11 +989,6 @@ test("When a record with a belongsTo is saved the foreign key should be sent.", 
   ajaxHash.success({ person: { name: 'Sam Woodard', person_type_id: 1}});
 });
 
-function stateEquals(entity, expectedState) {
-  var actualState = get(person, 'stateManager.currentState.name');
-
-  equal(actualState, expectedState, 'Expected state should have been: ' + expectedState+ ' but was: ' +  actualState);
-}
 
 test("creating a record with a 422 error marks the records as invalid", function(){
   person = store.createRecord(Person, { name: "" });
@@ -1030,7 +1001,7 @@ test("creating a record with a 422 error marks the records as invalid", function
 
   ajaxHash.error.call(ajaxHash.context, mockXHR);
 
-  stateEquals(person, 'invalid');
+  stateEquals(person, 'loaded.created.invalid');
 
   deepEqual(person.get('errors'), { name: ["can't be blank"]}, "the person has the errors");
 });
@@ -1041,8 +1012,11 @@ test("updating a record with a 422 error marks the records as invalid", function
   });
   store.load(Person, { id: 1, name: "John Doe" });
   person = store.find(Person, 1);
+  stateEquals(person, 'loaded.saved');
   person.set('name', '');
+  stateEquals(person, 'loaded.updated.uncommitted');
   store.commit();
+  stateEquals(person, 'loaded.updated.inFlight');
 
   var mockXHR = {
     status:       422,
@@ -1051,14 +1025,16 @@ test("updating a record with a 422 error marks the records as invalid", function
 
   ajaxHash.error.call(ajaxHash.context, mockXHR);
 
-  stateEquals(person, 'invalid');
+  stateEquals(person, 'loaded.updated.invalid');
 
   deepEqual(person.get('errors'), { name: ["can't be blank"], updatedAt: ["can't be blank"] }, "the person has the errors");
 });
 
 test("creating a record with a 500 error marks the record as error", function() {
   person = store.createRecord(Person, { name: "" });
+  stateEquals(person, 'loaded.created.uncommitted');
   store.commit();
+  stateEquals(person, 'loaded.created.inFlight');
 
   var mockXHR = {
     status:       500,
@@ -1067,14 +1043,17 @@ test("creating a record with a 500 error marks the record as error", function() 
 
   ajaxHash.error.call(ajaxHash.context, mockXHR);
 
-  expectState('error');
+  stateEquals(person, 'error');
 });
 
 test("updating a record with a 500 error marks the record as error", function() {
   store.load(Person, { id: 1, name: "John Doe" });
   person = store.find(Person, 1);
+  stateEquals(person, 'loaded.saved');
   person.set('name', 'Jane Doe');
+  stateEquals(person, 'loaded.updated.uncommitted');
   store.commit();
+  stateEquals(person, 'loaded.updated.inFlight');
 
   var mockXHR = {
     status:       500,
