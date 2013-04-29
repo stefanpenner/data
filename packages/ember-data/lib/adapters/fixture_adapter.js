@@ -7,7 +7,7 @@ require('ember-data/serializers/fixture_serializer');
   @submodule data-adapters
 */
 
-var get = Ember.get, fmt = Ember.String.fmt,
+var get = Ember.get, fmt = Ember.String.fmt, Promise = Ember.RSVP.Promise,
     dump = Ember.get(window, 'JSON.stringify') || function(object) { return object.toString(); };
 
 /**
@@ -84,91 +84,117 @@ DS.FixtureAdapter = DS.Adapter.extend({
 
   find: function(store, type, id) {
     var fixtures = this.fixturesForType(type),
-        fixture;
+        fixture, self = this;
 
-    Ember.warn("Unable to find fixtures for model type " + type.toString(), fixtures);
+    Ember.assert("Unable to find fixtures for model type " + type.toString(), !!fixtures);
 
-    if (fixtures) {
-      fixture = Ember.A(fixtures).findProperty('id', id);
-    }
+    return new Promise(function(resolve, reject) {
+      if (fixtures) {
+        fixture = Ember.A(fixtures).findProperty('id', id);
+      }
 
-    if (fixture) {
-      this.simulateRemoteCall(function() {
-        this.didFindRecord(store, type, fixture, id);
-      }, this);
-    }
+      if (fixture) {
+        self.simulateRemoteCall(function() {
+          self.didFindRecord(store, type, fixture, id);
+          resolve(fixture);
+        }, self);
+      } else {
+        reject(fixture);
+      }
+    });
+
   },
 
   findMany: function(store, type, ids) {
-    var fixtures = this.fixturesForType(type);
+    var fixtures = this.fixturesForType(type), self = this;
 
-    Ember.assert("Unable to find fixtures for model type "+type.toString(), !!fixtures);
+    Ember.assert("Unable to find fixtures for model type " + type.toString(), !!fixtures);
 
-    if (fixtures) {
-      fixtures = fixtures.filter(function(item) {
-        return ids.indexOf(item.id) !== -1;
-      });
-    }
+    return new Promise(function(resolve, reject) {
+      if (fixtures) {
+        fixtures = fixtures.filter(function(item) {
+          return ids.indexOf(item.id) !== -1;
+        });
+      }
 
-    if (fixtures) {
-      this.simulateRemoteCall(function() {
-        this.didFindMany(store, type, fixtures);
-      }, this);
-    }
+      if (fixtures) {
+        self.simulateRemoteCall(function() {
+          self.didFindMany(store, type, fixtures);
+          resolve(fixtures);
+        }, self);
+      } else {
+        reject(fixtures);
+      }
+    });
   },
 
   findAll: function(store, type) {
-    var fixtures = this.fixturesForType(type);
+    var fixtures = this.fixturesForType(type), self = this;
 
-    Ember.assert("Unable to find fixtures for model type "+type.toString(), !!fixtures);
+    Ember.assert("Unable to find fixtures for model type " + type.toString(), !!fixtures);
 
-    this.simulateRemoteCall(function() {
-      this.didFindAll(store, type, fixtures);
-    }, this);
+    return new Promise(function(resolve) {
+      self.simulateRemoteCall(function() {
+        self.didFindAll(store, type, fixtures);
+        resolve(fixtures);
+      }, self);
+    });
   },
 
   findQuery: function(store, type, query, array) {
-    var fixtures = this.fixturesForType(type);
+    var fixtures = this.fixturesForType(type), self = this;
 
-    Ember.assert("Unable to find fixtures for model type "+type.toString(), !!fixtures);
+    Ember.assert("Unable to find fixtures for model type " + type.toString(), !!fixtures);
 
-    fixtures = this.queryFixtures(fixtures, query, type);
+    fixtures = self.queryFixtures(fixtures, query, type);
 
-    if (fixtures) {
-      this.simulateRemoteCall(function() {
-        this.didFindQuery(store, type, fixtures, array);
-      }, this);
-    }
+    return new Promise(function(resolve, reject) {
+
+      if (fixtures) {
+        self.simulateRemoteCall(function() {
+          self.didFindQuery(store, type, fixtures, array);
+          resolve(fixtures);
+        }, self);
+      } else {
+        reject(fixtures);
+      }
+    });
   },
 
   createRecord: function(store, type, record) {
-    var fixture = this.mockJSON(type, record);
+    var fixture = this.mockJSON(type, record), self = this;
+    return new Promise(function(resolve) {
+      self.updateFixtures(type, fixture);
 
-    this.updateFixtures(type, fixture);
-
-    this.simulateRemoteCall(function() {
-      this.didCreateRecord(store, type, record, fixture);
-    }, this);
+      self.simulateRemoteCall(function() {
+        self.didCreateRecord(store, type, record, fixture);
+        resolve(fixture);
+      }, self);
+    });
   },
 
   updateRecord: function(store, type, record) {
-    var fixture = this.mockJSON(type, record);
+    var fixture = this.mockJSON(type, record), self = this;
+    return new Promise(function(resolve) {
+      self.updateFixtures(type, fixture);
 
-    this.updateFixtures(type, fixture);
-
-    this.simulateRemoteCall(function() {
-      this.didUpdateRecord(store, type, record, fixture);
-    }, this);
+      self.simulateRemoteCall(function() {
+        self.didUpdateRecord(store, type, record, fixture);
+        resolve(fixture);
+      }, self);
+    });
   },
 
   deleteRecord: function(store, type, record) {
-    var fixture = this.mockJSON(type, record);
+    var fixture = this.mockJSON(type, record), self = this;
+    return new Promise(function(resolve) {
+      self.deleteLoadedFixture(type, fixture);
 
-    this.deleteLoadedFixture(type, fixture);
-
-    this.simulateRemoteCall(function() {
-      this.didDeleteRecord(store, type, record);
-    }, this);
+      self.simulateRemoteCall(function() {
+        self.didDeleteRecord(store, type, record);
+        resolve(null);
+      }, self);
+    });
   },
 
   /*

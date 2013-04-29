@@ -211,3 +211,16 @@ test("polymorphic belongs to", function () {
   equal(bob.get('name'), "Bob", 'correct owner');
   equal(bob.constructor, App.Admin, 'correct person subclass');
 });
+
+test("Attempting to find a record not found in the fixtures", function() {
+  stop();
+  var person = store.find(App.Person, "not-found");
+
+  person.then(function() {
+    start();
+    ok(false);
+  }, function(record) {
+    start();
+    equal(person, record, "should error");
+  });
+});
