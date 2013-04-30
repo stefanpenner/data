@@ -92,6 +92,20 @@ test("A camelizeKeys() convenience will camelize all of the keys", function() {
   }));
 });
 
+test("Returning null or empty json from sync's find method will reject the promise", function() {
+  Person.sync = {
+    find: function(id, load) {
+      load();
+    }
+  };
+
+  var person = Person.find(1);
+
+  person.then(function(){}, async(function(record) {
+    equal(record, person, "rejects on empty load");
+  }));
+});
+
 // test("An applyTransforms method will apply registered transforms", function() {
 //   Person.sync = {
 //     find: function(id, process) {

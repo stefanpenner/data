@@ -5,6 +5,7 @@ require("ember-data/adapters/basic_adapter/processors");
   @module data
   @submodule data-adapters
 */
+var Promise = Ember.RSVP.Promise;
 
 var passthruTransform = {
   serialize: function(value) { return value; },
@@ -101,8 +102,17 @@ DS.BasicAdapter = DS.Adapter.extend({
 
     Ember.assert("You are trying to use the BasicAdapter to find id '" + id + "' of " + type + " but " + type + ".sync was not found", sync);
     Ember.assert("The sync code on " + type + " does not implement find(), but you are trying to find id '" + id + "'.", sync.find);
-
-    sync.find(id, DS.ObjectLoader(store, type));
+    return new Promise(function(resolve, reject) {
+      var resolver = function(json) {
+        if (json) {
+          DS.ObjectLoader(store, type)(json);
+          resolve(json);
+        } else {
+          reject(null);
+        }
+      };
+      sync.find(id, resolver);
+    });
   },
 
   findAll: function(store, type) {
@@ -111,7 +121,13 @@ DS.BasicAdapter = DS.Adapter.extend({
     Ember.assert("You are trying to use the BasicAdapter to find all " + type + " records but " + type + ".sync was not found", sync);
     Ember.assert("The sync code on " + type + " does not implement findAll(), but you are trying to find all " + type + " records.", sync.findAll);
 
-    sync.findAll(DS.ArrayLoader(store, type));
+    return new Promise(function(resolve) {
+      var resolver = function(json) {
+        DS.ArrayLoader(store, type)(json);
+        resolve(json);
+      };
+      sync.findAll(resolver);
+    });
   },
 
   findQuery: function(store, type, query, recordArray) {
@@ -120,7 +136,13 @@ DS.BasicAdapter = DS.Adapter.extend({
     Ember.assert("You are trying to use the BasicAdapter to query " + type + " but " + type + ".sync was not found", sync);
     Ember.assert("The sync code on " + type + " does not implement query(), but you are trying to query " + type + ".", sync.query);
 
-    sync.query(query, DS.ArrayLoader(store, type, recordArray));
+    return new Promise(function(resolve) {
+      var resolver = function(json) {
+        DS.ArrayLoader(store, type, recordArray)(json);
+        resolve(json);
+      };
+      sync.query(query, resolver);
+    });
   },
 
   findHasMany: function(store, record, relationship, data) {
@@ -136,9 +158,21 @@ DS.BasicAdapter = DS.Adapter.extend({
     };
 
     if (sync['find'+name]) {
-      sync['find' + name](record, options, load);
+      return new Promise(function(resolve) {
+        var resolver = function(json) {
+          load(json);
+          resolve(json);
+        };
+        sync['find' + name](record, options, resolver);
+      });
     } else if (sync.findHasMany) {
-      sync.findHasMany(record, options, load);
+      return new Promise(function(resolve) {
+        var resolver = function(json) {
+          load(json);
+          resolve(json);
+        };
+        sync.findHasMany(record, options, resolver);
+      });
     } else {
       Ember.assert("You are trying to use the BasicAdapter to find the " + relationship.key + " has-many relationship, but " + record.constructor + ".sync did not implement findHasMany or find" + name + ".", false);
     }
@@ -149,8 +183,13 @@ DS.BasicAdapter = DS.Adapter.extend({
 
     Ember.assert("You are trying to use the BasicAdapter to query " + type + " but " + type + ".sync was not found", sync);
     Ember.assert("The sync code on " + type + " does not implement createRecord(), but you are trying to create a " + type + " record", sync.createRecord);
-
-    sync.createRecord(record, didSave(store, record));
+    return new Promise(function(resolve) {
+      var resolver = function(json) {
+        didSave(store, record)(json);
+        resolve(json);
+      };
+      sync.createRecord(record, resolver);
+    });
   },
 
   updateRecord: function(store, type, record) {
@@ -158,7 +197,13 @@ DS.BasicAdapter = DS.Adapter.extend({
     Ember.assert("You are trying to use the BasicAdapter to query " + type + " but " + type + ".sync was not found", sync);
     Ember.assert("The sync code on " + type + " does not implement updateRecord(), but you are trying to update a " + type + " record", sync.updateRecord);
 
-    sync.updateRecord(record, didSave(store, record));
+   return new Promise(function(resolve) {
+      var resolver = function(json) {
+        didSave(store, record)(json);
+        resolve(json);
+      };
+      sync.updateRecord(record, resolver);
+    });
   },
 
   deleteRecord: function(store, type, record) {
@@ -166,7 +211,13 @@ DS.BasicAdapter = DS.Adapter.extend({
     Ember.assert("You are trying to use the BasicAdapter to query " + type + " but " + type + ".sync was not found", sync);
     Ember.assert("The sync code on " + type + " does not implement deleteRecord(), but you are trying to delete a " + type + " record", sync.deleteRecord);
 
-    sync.deleteRecord(record, didSave(store, record));
+    return new Promise(function(resolve) {
+      var resolver = function() {
+        didSave(store, record)();
+        resolve();
+      };
+      sync.deleteRecord(record, resolver);
+    });
   }
 });
 
