@@ -62,7 +62,13 @@ DS.RecordArray = Ember.ArrayProxy.extend(Ember.Evented, {
   },
 
   save: function() {
-    var promises = this.invoke("save");
+    var promises;
+
+    if(this.anyBy("isError", true)) {
+      promises = this.filterBy("isError", true).invoke("save");
+    } else {
+      promises = this.invoke("save");
+    }
 
     return DS.PromiseObject.create({ promise: Ember.RSVP.all(promises) });
   }
