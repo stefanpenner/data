@@ -83,5 +83,7 @@ test("Collection will reject save on invalid", function() {
 
   posts.save().then(function() {}, async(function() {
     ok(true, 'save operation was rejected');
-  }));
+  })).fail(function(reason){
+    ok(false, reason);
+  });
 });
