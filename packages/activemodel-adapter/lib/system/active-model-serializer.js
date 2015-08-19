@@ -281,7 +281,7 @@ var ActiveModelSerializer = RESTSerializer.extend({
             payload.type = this.modelNameFromPayloadKey(payload.type);
           } else if (payload && relationship.kind === "hasMany") {
             var self = this;
-            forEach(payload, function(single) {
+            forEach.call(payload, function(single) {
               single.type = self.modelNameFromPayloadKey(single.type);
             });
           }

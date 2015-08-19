@@ -59,11 +59,11 @@ export default JSONSerializer.extend({
     if (Ember.typeOf(payload.data) === 'object') {
       payload.data = this._normalizeResourceHelper(payload.data);
     } else {
-      payload.data = map(payload.data, this._normalizeResourceHelper, this);
+      payload.data = map.call(payload.data, this._normalizeResourceHelper, this);
     }
 
     if (Ember.typeOf(payload.included) === 'array') {
-      payload.included = map(payload.included, this._normalizeResourceHelper, this);
+      payload.included = map.call(payload.included, this._normalizeResourceHelper, this);
     }
 
     return payload;
@@ -102,7 +102,7 @@ export default JSONSerializer.extend({
     }
 
     if (Ember.typeOf(relationshipHash.data) === 'array') {
-      relationshipHash.data = map(relationshipHash.data, this._normalizeRelationshipDataHelper, this);
+      relationshipHash.data = map.call(relationshipHash.data, this._normalizeRelationshipDataHelper, this);
     }
 
     return relationshipHash;
@@ -296,7 +296,7 @@ export default JSONSerializer.extend({
           payloadKey = this.keyForRelationship(key, 'hasMany', 'serialize');
         }
 
-        let data = map(hasMany, (item) => {
+        let data = map.call(hasMany, (item) => {
           return {
             type: item.modelName,
             id: item.id
