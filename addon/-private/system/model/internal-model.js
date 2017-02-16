@@ -989,6 +989,7 @@ export default class InternalModel {
   */
   adapterDidCommit(data) {
     if (data) {
+      this.__relationshipData = data.relationships;
       data = data.attributes;
     }
 

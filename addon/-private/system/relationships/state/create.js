@@ -52,21 +52,21 @@ export default class Relationships {
   get(key) {
     let relationships = this.initializedRelationships;
     let relationship = relationships[key];
+    let internalModel = this.internalModel;
 
     if (!relationship) {
-      let internalModel = this.internalModel;
-      let relationshipPayload = internalModel.__relationshipData && internalModel.__relationshipData[key]
-      internalModel.__relationshipData && (internalModel.__relationshipData[key] = undefined);
       let relationshipsByName = get(internalModel.type, 'relationshipsByName');
       let rel = relationshipsByName.get(key);
 
       if (rel) {
         relationship = relationships[key] = createRelationshipFor(internalModel, rel, internalModel.store);
-        if (relationshipPayload) {
-          // TODO: may be overly defensive
-          relationship.push(relationshipPayload);
-        }
       }
+    }
+
+    let relationshipPayload = internalModel.__relationshipData && internalModel.__relationshipData[key]
+    if (relationshipPayload !== undefined) {
+      internalModel.__relationshipData && (internalModel.__relationshipData[key] = undefined);
+      relationship.push(relationshipPayload);
     }
 
     return relationship;
