@@ -57,17 +57,18 @@ export default class Relationships {
     if (!relationship) {
       let relationshipsByName = get(internalModel.type, 'relationshipsByName');
       let rel = relationshipsByName.get(key);
+      let relationshipPayload = internalModel.__relationshipData && internalModel.__relationshipData[key]
 
       if (rel) {
         relationship = relationships[key] = createRelationshipFor(internalModel, rel, internalModel.store);
       }
+
+      if (relationshipPayload !== undefined) {
+        internalModel.__relationshipData && (internalModel.__relationshipData[key] = undefined);
+        relationship.push(relationshipPayload);
+      }
     }
 
-    let relationshipPayload = internalModel.__relationshipData && internalModel.__relationshipData[key]
-    if (relationshipPayload !== undefined) {
-      internalModel.__relationshipData && (internalModel.__relationshipData[key] = undefined);
-      relationship.push(relationshipPayload);
-    }
 
     return relationship;
   }

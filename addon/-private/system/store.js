@@ -2402,8 +2402,6 @@ Store = Service.extend({
   },
 
   _setupRelationships() {
-    return;
-
     heimdall.increment(_setupRelationships);
     let setupToken = heimdall.start('store._setupRelationships');
     let pushed = this._pushedInternalModels;
@@ -2796,14 +2794,12 @@ function setupRelationships(store, internalModel, data) {
     return;
   }
 
-  internalModel.type.eachRelationship((key, descriptor) => {
-    if (!data.relationships[key]) {
-      return;
+  let relationships = internalModel._relationships;
+  for (let key in data.relationships) {
+    if (relationships.has(key)) {
+      relationships.get(key).push(data.relationships[key]);
     }
-
-    let relationship = internalModel._relationships.get(key);
-    relationship.push(data.relationships[key]);
-  });
+  }
 }
 
 export { Store };
