@@ -1307,6 +1307,20 @@ Model.reopenClass({
    @return {Object} the inverse relationship, or null
    */
   inverseFor(name, store) {
+    let relationship = get(this, 'relationshipsByName').get(name);
+    if (!relationship) {
+      return null;
+    }
+
+    let options = relationship.options;
+    if (options && options.inverse === null) {
+      return null;
+    }
+
+    return this._inverseFor(name, store);
+  },
+
+  _inverseFor(name, store) {
     let inverseMap = get(this, 'inverseMap');
     if (inverseMap[name]) {
       return inverseMap[name];
