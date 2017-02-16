@@ -356,6 +356,9 @@ test('unloading a disconnected subgraph clears the relevant internal models', fu
   countOrphanCalls(env.store.peekRecord('car', 1));
   countOrphanCalls(env.store.peekRecord('car', 2));
 
+  // make sure relationships are initialized
+  env.store.peekRecord('person', 1).get('cars');
+
   run(() => {
     env.store.peekRecord('person', 1).unloadRecord();
     env.store.peekRecord('car', 1).unloadRecord();

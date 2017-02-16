@@ -2789,15 +2789,64 @@ function _commit(adapter, store, operation, snapshot) {
   }, label);
 }
 
+function inverseRelationshipInitialized(store, internalModel, data, key) {
+  let relationshipData = data.relationships[key].data;
+
+  if (!relationshipData) {
+    // can't check inverse for eg { comments: { links: { related: URL }}}
+    return false;
+  }
+
+  // TODO: internalModel.type will reify
+  let inverseData = internalModel.type.inverseFor(key, store);
+  if (!inverseData) {
+    return false;
+  }
+
+  let inverse;
+
+  if (Array.isArray(relationshipData)) {
+    for (let i=0; i<relationshipData.length; ++i) {
+      inverse =
+        store._internalModelForId(relationshipData[i].type, relationshipData[i].id);
+      if (inverse._relationships.has(inverseData.name)) {
+        return true;
+      }
+    }
+
+    return false;
+
+  } else {
+    inverse = store._internalModelForId(relationshipData.type, relationshipData.id);
+    return inverse._relationships.has(inverseData.name);
+  }
+}
+
 function setupRelationships(store, internalModel, data) {
   if (!data.relationships) {
     return;
   }
 
   let relationships = internalModel._relationships;
+
   for (let key in data.relationships) {
-    if (relationships.has(key)) {
-      relationships.get(key).push(data.relationships[key]);
+    let relationshipRequiresInitialization =
+      relationships.has(key) ||
+      // TODO: also need to push if inverse is initialized
+      //  eg  post hasmany messages;
+      //      post.get(messages)
+      //      push(message belongs to post)
+      //
+      //      post.get(messages) needs to be up to date
+      //
+      // TODO: megadoubts are mega; we want to solve the above ^ case
+      //  a) sanity check this approach
+      //  b) setup all relationships in payload but keep cost down?
+      inverseRelationshipInitialized(store, internalModel, data, key);
+
+    if (relationshipRequiresInitialization) {
+      let relationshipData = data.relationships[key];
+      relationships.get(key).push(relationshipData);
     }
   }
 }
