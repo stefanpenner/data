@@ -531,6 +531,7 @@ test("value() returns the referenced records when all records are loaded", funct
   });
 
   run(function() {
+    debugger;
     var personsReference = family.hasMany('persons');
     var records = personsReference.value();
     assert.equal(get(records, 'length'), 2);

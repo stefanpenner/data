@@ -518,6 +518,7 @@ export default class InternalModel {
 
   setupData(data) {
     heimdall.increment(setupData);
+    this.__relationshipData = data.relationships;
     let changedKeys = this._changedKeys(data.attributes);
     assign(this._data, data.attributes);
     this.pushedData();

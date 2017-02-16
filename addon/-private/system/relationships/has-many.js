@@ -144,6 +144,7 @@ export default function hasMany(type, options) {
   return Ember.computed({
     get(key) {
       let relationship = this._internalModel._relationships.get(key);
+      debugger;
       return relationship.getRecords();
     },
     set(key, records) {

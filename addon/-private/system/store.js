@@ -2402,6 +2402,8 @@ Store = Service.extend({
   },
 
   _setupRelationships() {
+    return;
+
     heimdall.increment(_setupRelationships);
     let setupToken = heimdall.start('store._setupRelationships');
     let pushed = this._pushedInternalModels;

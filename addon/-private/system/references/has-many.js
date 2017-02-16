@@ -21,6 +21,7 @@ const {
    @namespace DS
 */
 const HasManyReference = function(store, parentInternalModel, hasManyRelationship) {
+  debugger;
   this._super$constructor(store, parentInternalModel);
   this.hasManyRelationship = hasManyRelationship;
   this.type = hasManyRelationship.relationshipMeta.type;
