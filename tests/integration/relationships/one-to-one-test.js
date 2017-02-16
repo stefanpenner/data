@@ -65,6 +65,7 @@ test("Relationship is available from both sides even if only loaded from one sid
         }
       }
     });
+    // TODO: requires SSOT
     stanleysFriend = store.push({
       data: {
         id: 2,
@@ -135,6 +136,7 @@ test("Fetching a belongsTo that is set to null removes the record from a relatio
         }
       }
     });
+    // TODO: requires SSOT
     store.push({
       data: {
         id: 1,
@@ -420,6 +422,7 @@ test("Setting a BelongsTo to a promise unwraps the promise before setting- async
         }
       }
     });
+    // TODO: requires SSOT
     stanleysFriend = store.push({
       data: {
         id: 2,
@@ -845,6 +848,7 @@ test("Rollbacking attributes of deleted record restores the relationship on both
         }
       }
     });
+    // TODO: requires SSOT
     stanleysFriend = store.push({
       data: {
         id: 2,
