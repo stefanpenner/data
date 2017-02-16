@@ -85,6 +85,17 @@ test("Loading from one hasMany side reflects on the other hasMany side - async",
         type: 'topic',
         attributes: {
           title: 'EmberFest was great'
+        },
+        // TODO: previously relationships was unspecified; this worked only
+        // because we itereated the type's relationships rather than the
+        // payload's; but we should be more strict about the internal format
+        relationships: {
+          users: {
+            data: [{
+              id: '1',
+              type: 'user'
+            }]
+          }
         }
       }
     });
