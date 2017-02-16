@@ -2789,7 +2789,7 @@ function _commit(adapter, store, operation, snapshot) {
   }, label);
 }
 
-function inverseRelationshipInitialized(store, internalModel, data, key) {
+function inverseRecordExists(store, internalModel, data, key) {
   let relationshipData = data.relationships[key].data;
 
   if (!relationshipData) {
@@ -2803,13 +2803,9 @@ function inverseRelationshipInitialized(store, internalModel, data, key) {
     return false;
   }
 
-  let inverse;
-
   if (Array.isArray(relationshipData)) {
     for (let i=0; i<relationshipData.length; ++i) {
-      inverse =
-        store._internalModelForId(relationshipData[i].type, relationshipData[i].id);
-      if (inverse._relationships.has(inverseData.name)) {
+      if (store._recordMapFor(relationshipData[i].type).has(relationshipData[i].id)) {
         return true;
       }
     }
@@ -2817,8 +2813,7 @@ function inverseRelationshipInitialized(store, internalModel, data, key) {
     return false;
 
   } else {
-    inverse = store._internalModelForId(relationshipData.type, relationshipData.id);
-    return inverse._relationships.has(inverseData.name);
+    return store._recordMapFor(relationshipData.type).has(relationshipData.id);
   }
 }
 
@@ -2842,7 +2837,7 @@ function setupRelationships(store, internalModel, data) {
       // TODO: megadoubts are mega; we want to solve the above ^ case
       //  a) sanity check this approach
       //  b) setup all relationships in payload but keep cost down?
-      inverseRelationshipInitialized(store, internalModel, data, key);
+      inverseRecordExists(store, internalModel, data, key);
 
     if (relationshipRequiresInitialization) {
       let relationshipData = data.relationships[key];

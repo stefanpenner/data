@@ -86,6 +86,9 @@ test("Loading from one hasMany side reflects on the other hasMany side - async",
         attributes: {
           title: 'EmberFest was great'
         },
+        // TODO: this can be fixed up properly by giving relationships a single
+        // source of truth; presently a relationship's inverse exists in a
+        // different relationship set anchored to the other internalmodel.
         // TODO: previously relationships was unspecified; this worked only
         // because we itereated the type's relationships rather than the
         // payload's; but we should be more strict about the internal format
