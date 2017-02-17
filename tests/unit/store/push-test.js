@@ -503,10 +503,6 @@ testInDebug('Calling push with a link for a non async relationship should warn i
           }
         }
       });
-
-      // TODO: seems good to runInDebug the assertion even if the relationship
-      // is lazy
-      store.peekRecord('person', 1).get('phoneNumbers');
     });
   }, /You pushed a record of type 'person' with a relationship 'phoneNumbers' configured as 'async: false'. You've included a link but no primary data, this may be an error in your payload./);
 });
@@ -617,9 +613,6 @@ testInDebug('calling push with hasMany relationship the value must be an array',
               }
             }
           });
-
-          // TODO: seems good to runInDebut this assert at push to fail fast
-          store.peekRecord('person', 1).get('phoneNumbers');
         });
       } catch (e) {
         store._pushedInternalModels.length = 0;
@@ -663,10 +656,6 @@ testInDebug('calling push with belongsTo relationship the value must not be an a
           }
         }
       });
-
-      // TODO: push with invalid payload is fine b/c it's not inspected until
-      // accessed; although seems good to put the dev assert at push
-      store.peekRecord('phone-number', 1).get('person');
     });
   }, /must not be an array/);
 });

@@ -2842,6 +2842,27 @@ function setupRelationships(store, internalModel, data) {
     if (relationshipRequiresInitialization) {
       let relationshipData = data.relationships[key];
       relationships.get(key).push(relationshipData);
+    } else {
+      runInDebug(() => {
+        let relationshipMeta = get(internalModel.type, 'relationshipsByName').get(key);
+        let relationshipData = data.relationships[key];
+        if (!relationshipData || !relationshipMeta) {
+          return;
+        }
+
+        if (relationshipData.links) {
+          let isAsync = relationshipMeta.options && relationshipMeta.options.async !== false;
+          warn(`You pushed a record of type '${internalModel.type.modelName}' with a relationship '${key}' configured as 'async: false'. You've included a link but no primary data, this may be an error in your payload.`, isAsync || relationshipData.data , {
+            id: 'ds.store.push-link-for-sync-relationship'
+          });
+        } else if (relationshipData.data) {
+          if (relationshipMeta.kind === 'belongsTo') {
+            assert(`A ${internalModel.type.modelName} record was pushed into the store with the value of ${key} being ${inspect(relationshipData.data)}, but ${key} is a belongsTo relationship so the value must not be an array. You should probably check your data payload or serializer.`, !Array.isArray(relationshipData.data));
+          } else if (relationshipMeta.kind === 'hasMany') {
+            assert(`A ${internalModel.type.modelName} record was pushed into the store with the value of ${key} being '${inspect(relationshipData.data)}', but ${key} is a hasMany relationship so the value must be an array. You should probably check your data payload or serializer.`, Array.isArray(relationshipData.data));
+          }
+        }
+      });
     }
   }
 }
