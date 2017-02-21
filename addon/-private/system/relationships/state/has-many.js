@@ -223,6 +223,10 @@ export default class ManyRelationship extends Relationship {
     }
   }
 
+  pushFromInverse(payload) {
+    // TODO: update if we already have payloads
+  }
+
   updateData(data) {
     let internalModels = this.store._pushResourceIdentifiers(this, data);
     this.updateRecordsFromAdapter(internalModels);

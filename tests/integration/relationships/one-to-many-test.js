@@ -220,7 +220,6 @@ test("Fetching a belongsTo that is set to null removes the record from a relatio
     });
   });
   run(function () {
-    // TODO: requires SSOT
     store.push({
       data: [{
         id: '1',

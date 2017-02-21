@@ -21,6 +21,7 @@ import {
 
 import { normalizeResponseHelper } from "ember-data/-private/system/store/serializer-response";
 import { serializerForAdapter } from "ember-data/-private/system/store/serializers";
+import RelationshipsPayloads from 'ember-data/-private/system/relationships/relationships-payloads';
 
 import {
   _find,
@@ -214,6 +215,7 @@ Store = Service.extend({
     this._pendingSave = [];
     this._instanceCache = new ContainerInstanceCache(getOwner(this), this);
     this._modelClassCache = new EmptyObject();
+    this._relationshipsPayloads = new RelationshipsPayloads(this);
 
     /*
       Ember Data uses several specialized micro-queues for organizing
@@ -2825,7 +2827,7 @@ function setupRelationships(store, internalModel, data) {
   let relationships = internalModel._relationships;
 
   for (let key in data.relationships) {
-    let relationshipRequiresInitialization =
+    let relationshipRequiresNotification =
       relationships.has(key) ||
       // TODO: also need to push if inverse is initialized
       //  eg  post hasmany messages;
@@ -2839,7 +2841,7 @@ function setupRelationships(store, internalModel, data) {
       //  b) setup all relationships in payload but keep cost down?
       inverseRecordExists(store, internalModel, data, key);
 
-    if (relationshipRequiresInitialization) {
+    if (relationshipRequiresNotification) {
       let relationshipData = data.relationships[key];
       relationships.get(key).push(relationshipData);
     } else {

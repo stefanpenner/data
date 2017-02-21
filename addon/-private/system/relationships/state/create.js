@@ -57,14 +57,19 @@ export default class Relationships {
     if (!relationship) {
       let relationshipsByName = get(internalModel.type, 'relationshipsByName');
       let rel = relationshipsByName.get(key);
-      let relationshipPayload = internalModel.__relationshipData && internalModel.__relationshipData[key]
+      let relationshipPayloadEntry = internalModel.store._relationshipsPayloads.get(internalModel.modelName, internalModel.id, key);
 
       if (rel) {
         relationship = relationships[key] = createRelationshipFor(internalModel, rel, internalModel.store);
       }
 
-      if (relationshipPayload !== undefined) {
-        relationship.push(relationshipPayload);
+      if (relationshipPayloadEntry !== undefined) {
+        let { payload, inverse } = relationshipPayloadEntry;
+        if (!inverse) {
+          relationship.push(payload);
+        } else {
+          relationship.pushFromInverse(payload);
+        }
       }
     }
 

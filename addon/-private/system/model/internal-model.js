@@ -518,7 +518,8 @@ export default class InternalModel {
 
   setupData(data) {
     heimdall.increment(setupData);
-    this.__relationshipData = data.relationships;
+    this.store._relationshipsPayloads.push(this.modelName, this.id, data.relationships);
+
     let changedKeys = this._changedKeys(data.attributes);
     assign(this._data, data.attributes);
     this.pushedData();
@@ -989,7 +990,8 @@ export default class InternalModel {
   */
   adapterDidCommit(data) {
     if (data) {
-      this.__relationshipData = data.relationships;
+      this.store._relationshipsPayloads.push(this.modelName, this.id, data.relationships);
+
       data = data.attributes;
     }
 

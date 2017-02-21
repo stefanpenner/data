@@ -161,6 +161,10 @@ export default class BelongsToRelationship extends Relationship {
     return this.findRecord();
   }
 
+  pushFromInverse(payload) {
+    this.push(payload);
+  }
+
   updateData(data) {
     let internalModel = this.store._pushResourceIdentifier(this, data);
     this.setCanonicalRecord(internalModel);
