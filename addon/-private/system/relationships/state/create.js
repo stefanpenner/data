@@ -64,7 +64,6 @@ export default class Relationships {
       }
 
       if (relationshipPayload !== undefined) {
-        internalModel.__relationshipData && (internalModel.__relationshipData[key] = undefined);
         relationship.push(relationshipPayload);
       }
     }
