@@ -464,7 +464,7 @@ testInDebug("Inverse relationships that don't exist throw a nice error for a bel
 });
 
 test("inverseFor short-circuits when inverse is null", function(assert) {
-  assert.expect(2);
+  assert.expect(4);
   Post = DS.Model.extend({
     comments: DS.hasMany('comment', { async: false, inverse: null })
   });

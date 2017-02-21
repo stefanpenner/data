@@ -70,7 +70,11 @@ class RelationshipPayloads {
     this._rhsKey = key2;
 
     this._lhsPayloads = {};
-    this._rhsPayloads = {};
+    if (key1 !== key2) {
+      this._rhsPayloads = {};
+    } else {
+      this._rhsPayloads = this._lhsPayloads;
+    }
 
     // either canoical on push or pending & flush
     this._pendingPayloads = [];
@@ -121,12 +125,17 @@ class RelationshipPayloads {
         },
         inverse: true
       }
-      // TODO: if inverse payload exists, update inverse (ie delete case; push
-      // foo: [] need to clear from other)
       if (key === this._lhsKey) {
+        // TODO: we remove without checking the new payload; this is fine for
+        // arrays; for belongsTo the previous semantics were specifically that
+        // `null` meant clear out; however i think we're good b/c the transport
+        // is json and there is no way to distinguish key-present value
+        // undefined vs null
+        this._removeInverse(this._lhsPayloads[id], this._rhsPayloads);
         this._lhsPayloads[id] = entry;
         this._populateInverse(relationshipData, inverseEntry, this._rhsPayloads);
       } else {
+        this._removeInverse(this._rhsPayloads[id], this._lhsPayloads);
         this._rhsPayloads[id] = entry;
         this._populateInverse(relationshipData, inverseEntry, this._lhsPayloads);
       }
@@ -144,6 +153,28 @@ class RelationshipPayloads {
     } else {
       let inverseId = relationshipData.data.id;
       inversePayloads[inverseId] = inverseEntry;
+    }
+  }
+
+  // TODO: diff rather than removeall addall?
+  _removeInverse(entry, inversePayloads) {
+    let data = entry && entry.payload && entry.payload.data;
+    if (!data) { return; }
+
+    if (Array.isArray(data)) {
+      for (let i=0; i<data.length; ++i) {
+        let inverseId = data[i].id;
+        inversePayloads[inverseId] = {
+          payload: { data: null },
+          inverse: true
+        };
+      }
+    } else {
+      let inverseId = data.id;
+      inversePayloads[inverseId] = {
+        payload: { data: null },
+        inverse: true
+      };
     }
   }
 }
