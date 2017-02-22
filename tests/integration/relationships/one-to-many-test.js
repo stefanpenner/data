@@ -72,7 +72,6 @@ test("Relationship is available from the belongsTo side even if only loaded from
         }
       }
     });
-    // TODO: requires SSOT
     message = store.push({
       data: {
         id: '2',
@@ -698,7 +697,6 @@ test("Pushing to the hasMany reflects the change on the belongsTo side - async",
         }
       }
     });
-    // TODO: requires SSOT
     store.push({
       data: {
         id: '1',
@@ -889,7 +887,6 @@ test("Pushing to the hasMany side keeps the oneToMany invariant on the belongsTo
         }
       }
     });
-    // TODO: requires SSOT
     user2 = store.push({
       data: {
         id: '2',
@@ -1208,7 +1205,6 @@ test("Rollbacking attributes of a deleted record works correctly when the hasMan
         }
       }
     });
-    // TODO: requires SSOT
     message = store.push({
       data: {
         id: '2',
@@ -1291,7 +1287,6 @@ test("Rollbacking attributes of deleted record works correctly when the belongsT
         }
       }
     });
-    // TODO: requires SSOT
     message = store.push({
       data: {
         id: '2',

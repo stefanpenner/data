@@ -84,6 +84,7 @@ test('using store.push with a null value for a payload in relationships sets the
     }
   };
 
+  // TODO: why does this test pass?  make sure things are ok
   // relationship.push is what invalidates the cp
   // relationship.push is also what invalidates
   // manyarray.{firstrecord,lastrecord,length} via flushcanonical

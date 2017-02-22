@@ -2829,25 +2829,16 @@ function setupRelationships(store, internalModel, data) {
   for (let key in data.relationships) {
     let relationshipRequiresNotification =
       relationships.has(key) ||
-      // TODO: not 100% sure of this; with relationshippayloads i think we only
-      // need to do this if the inverserecord exists AND the inverse
-      // relationship is initialized
-      // TODO: also need to push if inverse is initialized
-      //  eg  post hasmany messages;
-      //      post.get(messages)
-      //      push(message belongs to post)
-      //
-      //      post.get(messages) needs to be up to date
-      //
-      // TODO: megadoubts are mega; we want to solve the above ^ case
-      //  a) sanity check this approach
-      //  b) setup all relationships in payload but keep cost down?
+      // TODO: might only need to do this if inverse record exists AND inverse
+      // relationship is initialized; but recall that we also need to check
+      // against prior inverses for cp invalidation
       inverseRecordExists(store, internalModel, data, key);
 
     if (relationshipRequiresNotification) {
       let relationshipData = data.relationships[key];
       relationships.get(key).push(relationshipData);
     } else {
+      // in debug, assert payload validity eagerly
       runInDebug(() => {
         let relationshipMeta = get(internalModel.type, 'relationshipsByName').get(key);
         let relationshipData = data.relationships[key];

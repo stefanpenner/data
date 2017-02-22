@@ -400,5 +400,7 @@ export default class Relationship {
     }
   }
 
+  pushFromInverse() {}
+
   updateData() {}
 }
