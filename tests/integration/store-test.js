@@ -123,11 +123,6 @@ test("destroying the store correctly cleans everything up", function(assert) {
   var car, person;
   env.adapter.shouldBackgroundReloadRecord = () => false;
   run(function() {
-    // TODO: requires SSOT; currently we
-    //  1. save payload info on both internalmodels
-    //  2. setuprelationship on car -> setup inverse -> clear person
-    //      relationship info
-    //  3. setuprelationship on person, but it was gone in step 2 so boom
     store.push({
       data: [{
         type: 'car',

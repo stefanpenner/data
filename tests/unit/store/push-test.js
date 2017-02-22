@@ -881,7 +881,6 @@ test("Should support pushing included models into the store", function(assert) {
   assert.expect(2);
 
   run(function() {
-    // TODO: requires SSOT
     store.push({
       data: [{
         type: 'person',
