@@ -2829,6 +2829,9 @@ function setupRelationships(store, internalModel, data) {
   for (let key in data.relationships) {
     let relationshipRequiresNotification =
       relationships.has(key) ||
+      // TODO: not 100% sure of this; with relationshippayloads i think we only
+      // need to do this if the inverserecord exists AND the inverse
+      // relationship is initialized
       // TODO: also need to push if inverse is initialized
       //  eg  post hasmany messages;
       //      post.get(messages)

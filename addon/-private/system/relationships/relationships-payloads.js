@@ -131,11 +131,11 @@ class RelationshipPayloads {
         // `null` meant clear out; however i think we're good b/c the transport
         // is json and there is no way to distinguish key-present value
         // undefined vs null
-        this._removeInverse(this._lhsPayloads[id], this._rhsPayloads);
+        this._removeInverse(id, this._lhsPayloads[id], this._rhsPayloads);
         this._lhsPayloads[id] = entry;
         this._populateInverse(relationshipData, inverseEntry, this._rhsPayloads);
       } else {
-        this._removeInverse(this._rhsPayloads[id], this._lhsPayloads);
+        this._removeInverse(id, this._rhsPayloads[id], this._lhsPayloads);
         this._rhsPayloads[id] = entry;
         this._populateInverse(relationshipData, inverseEntry, this._lhsPayloads);
       }
@@ -148,29 +148,48 @@ class RelationshipPayloads {
     if (Array.isArray(relationshipData.data)) {
       for (let i=0; i<relationshipData.data.length; ++i) {
         let inverseId = relationshipData.data[i].id;
-        inversePayloads[inverseId] = inverseEntry;
+        this._addToInverse(inverseEntry, inverseId, inversePayloads);
       }
     } else {
       let inverseId = relationshipData.data.id;
+      this._addToInverse(inverseEntry, inverseId, inversePayloads);
+    }
+  }
+
+  _addToInverse(inverseEntry, inverseId, inversePayloads) {
+    let existingEntry = inversePayloads[inverseId];
+    let existingData = existingEntry && existingEntry.payload && existingEntry.payload.data;
+
+    if (Array.isArray(existingData)) {
+      existingData.push(inverseEntry.payload.data);
+    } else {
       inversePayloads[inverseId] = inverseEntry;
     }
   }
 
   // TODO: diff rather than removeall addall?
-  _removeInverse(entry, inversePayloads) {
+  _removeInverse(id, entry, inversePayloads) {
     let data = entry && entry.payload && entry.payload.data;
     if (!data) { return; }
 
     if (Array.isArray(data)) {
       for (let i=0; i<data.length; ++i) {
-        let inverseId = data[i].id;
-        inversePayloads[inverseId] = {
-          payload: { data: null },
-          inverse: true
-        };
+        this._removeFromInverse(id, data[i].id, inversePayloads);
       }
     } else {
-      let inverseId = data.id;
+      this._removeFromInverse(id, data.id, inversePayloads);
+    }
+  }
+
+  _removeFromInverse(id, inverseId, inversePayloads) {
+    let inverseEntry = inversePayloads[inverseId];
+    let data = inverseEntry && inverseEntry.payload && inverseEntry.payload.data;
+
+    if (!data) { return; }
+
+    if (Array.isArray(data)) {
+      inverseEntry.payload.data = data.filter((x) => x.id !== id);
+    } else {
       inversePayloads[inverseId] = {
         payload: { data: null },
         inverse: true
