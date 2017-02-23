@@ -84,24 +84,6 @@ test('using store.push with a null value for a payload in relationships sets the
     }
   };
 
-  // TODO: why does this test pass?  make sure things are ok
-  // relationship.push is what invalidates the cp
-  // relationship.push is also what invalidates
-  // manyarray.{firstrecord,lastrecord,length} via flushcanonical
-  //  (as well as arrayContent{will,did}Change(all records))
-  //
-  //
-  //  cant just propertyDidChange(belongsToProp) on pushpayload b/c we want to
-  //  *not* do this for newly created belongsto when the server returns null
-  //  eg
-  //    new FooThing({ wat: existingWat })
-  //    pushPayload({
-  //      data: {
-  //        id: 1,
-  //        type: 'wat'
-  //        relationships: { foo_thing: null }
-  //      }
-  //    })
   run(() => store.push(payloadThatResetsBelongToRelationship));
   assert.equal(book.get('author'), null);
 });
