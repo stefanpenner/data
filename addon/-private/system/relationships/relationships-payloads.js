@@ -248,7 +248,6 @@ class RelationshipPayloads {
     this._flushPending();
 
     let key = `${modelName}:${relationshipName}`;
-    // TODO: return { payload: payload, inverse: true|false }
     if (key === this._lhsKey) {
       return this._lhsPayloads[id];
     } else {
@@ -257,13 +256,6 @@ class RelationshipPayloads {
   }
 
   push(modelName, id, relationshipName, relationshipData) {
-    let key = `${modelName}:${relationshipName}`;
-    if (key === this._lhsKey) {
-      this._lhsPayloads[id] = relationshipData;
-    } else {
-      this._rhsPayloads[id] = relationshipData;
-    }
-
     this._pendingPayloads.push([modelName, id, relationshipName, relationshipData]);
   }
 
@@ -289,12 +281,8 @@ class RelationshipPayloads {
         },
         inverse: true
       }
+
       if (key === this._lhsKey) {
-        // TODO: we remove without checking the new payload; this is fine for
-        // arrays; for belongsTo the previous semantics were specifically that
-        // `null` meant clear out; however i think we're good b/c the transport
-        // is json and there is no way to distinguish key-present value
-        // undefined vs null
         this._removeInverse(id, this._lhsPayloads[id], this._rhsPayloads);
         this._lhsPayloads[id] = entry;
         this._populateInverse(relationshipData, inverseEntry, this._rhsPayloads);
@@ -324,6 +312,12 @@ class RelationshipPayloads {
     let existingEntry = inversePayloads[inverseId];
     let existingData = existingEntry && existingEntry.payload && existingEntry.payload.data;
 
+    // If there is no existing data, it would make a certain amount of sense for
+    // us to set the inverse payload to an array if the inverse side of the
+    // relationship is a many.  We could do this by changing this logic to
+    // something that checked the schema.  It's not necessary at the moment,
+    // because to-many relationships that receive inverse payloads ignore them,
+    // as we don't yet support sparse many relationships.
     if (Array.isArray(existingData)) {
       existingData.push(inverseEntry.payload.data);
     } else {
@@ -334,7 +328,7 @@ class RelationshipPayloads {
   // TODO: diff rather than removeall addall?
   _removeInverse(id, entry, inversePayloads) {
     let data = entry && entry.payload && entry.payload.data;
-    if (!data) { return; }
+    if (data === undefined) { return; }
 
     if (Array.isArray(data)) {
       for (let i=0; i<data.length; ++i) {
