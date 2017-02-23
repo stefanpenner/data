@@ -2791,7 +2791,7 @@ function _commit(adapter, store, operation, snapshot) {
   }, label);
 }
 
-function inverseRecordExists(store, internalModel, data, key) {
+function inverseRelationshipInitialized(store, internalModel, data, key) {
   let relationshipData = data.relationships[key].data;
 
   if (!relationshipData) {
@@ -2805,17 +2805,20 @@ function inverseRecordExists(store, internalModel, data, key) {
     return false;
   }
 
+  let { name: inverseRelationshipName } = inverseData;
+
   if (Array.isArray(relationshipData)) {
     for (let i=0; i<relationshipData.length; ++i) {
-      if (store._recordMapFor(relationshipData[i].type).has(relationshipData[i].id)) {
+      let inverseInternalModel = store._recordMapFor(relationshipData[i].type).get(relationshipData[i].id);
+      if (inverseInternalModel && inverseInternalModel._relationships.has(inverseRelationshipName)) {
         return true;
       }
     }
 
     return false;
-
   } else {
-    return store._recordMapFor(relationshipData.type).has(relationshipData.id);
+    let inverseInternalModel = store._recordMapFor(relationshipData.type).get(relationshipData.id);
+    return inverseInternalModel && inverseInternalModel._relationships.has(inverseRelationshipName);
   }
 }
 
@@ -2829,10 +2832,7 @@ function setupRelationships(store, internalModel, data) {
   for (let key in data.relationships) {
     let relationshipRequiresNotification =
       relationships.has(key) ||
-      // TODO: might only need to do this if inverse record exists AND inverse
-      // relationship is initialized; but recall that we also need to check
-      // against prior inverses for cp invalidation
-      inverseRecordExists(store, internalModel, data, key);
+      inverseRelationshipInitialized(store, internalModel, data, key);
 
     if (relationshipRequiresNotification) {
       let relationshipData = data.relationships[key];
