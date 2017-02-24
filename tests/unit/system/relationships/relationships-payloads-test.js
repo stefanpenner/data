@@ -22,7 +22,7 @@ module('unit/system/relationships/relationships-payloads', {
     });
     Purpose.toString = () => 'Purpose';
 
-    let store = createStore({
+    let store = this.store = createStore({
       user: User,
       Hobby: Hobby,
       purpose: Purpose
@@ -666,4 +666,77 @@ test('push ignores invalid relationships in a payload', function(assert) {
     },
     inverse: false
   }, 'user.purpose is loaded');
+});
+
+test('unload unloads payloads that have no inverse', function(assert) {
+  this.relationshipsPayloads.push('user', 1, {
+    purpose: {
+      data: {
+        id: 1,
+        type: 'purpose'
+      }
+    }
+  });
+
+  let entry = this.relationshipsPayloads.get('user', 1, 'purpose');
+  assert.deepEqual(entry, {
+    payload: {
+      data: {
+        id: 1,
+        type: 'purpose'
+      }
+    },
+    inverse: false
+  }, 'payload is initially loaded');
+
+  this.relationshipsPayloads.unload('user', 1, 'purpose');
+
+  entry = this.relationshipsPayloads.get('user', 1, 'purpose');
+  assert.equal(entry, null, 'payload is unloaded when inverse is not in store');
+});
+
+test('unload unloads payloads with inverse only when if the inverse is already unloaded', function(assert) {
+  this.relationshipsPayloads.push('user', 1, {
+    purpose: {
+      data: {
+        id: 1,
+        type: 'purpose'
+      }
+    }
+  });
+
+  let entry = this.relationshipsPayloads.get('user', 1, 'purpose');
+  assert.deepEqual(entry, {
+    payload: {
+      data: {
+        id: 1,
+        type: 'purpose'
+      }
+    },
+    inverse: false
+  }, 'payload is initially loaded');
+
+  this.store.hasRecordForId = (modelName, id) => {
+    return modelName === 'purpose' && (id+'') === '1';
+  }
+
+  this.relationshipsPayloads.unload('user', 1, 'purpose');
+
+  entry = this.relationshipsPayloads.get('user', 1, 'purpose');
+  assert.deepEqual(entry, {
+    payload: {
+      data: {
+        id: 1,
+        type: 'purpose'
+      }
+    },
+    inverse: false
+  }, 'payload is not unloaded while inverse remains in store');
+
+  this.store.hasRecordForId = () => false;
+
+  this.relationshipsPayloads.unload('user', 1, 'purpose');
+
+  entry = this.relationshipsPayloads.get('user', 1, 'purpose');
+  assert.equal(entry, null, 'payload is unloaded when inverse is not in store');
 });

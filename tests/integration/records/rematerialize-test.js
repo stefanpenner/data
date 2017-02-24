@@ -38,7 +38,7 @@ let Boat = DS.Model.extend({
 });
 Boat.toString = function() { return 'Boat'; };
 
-module("integration/unload - Unloading Records", {
+module("integration/unload - Rematerializing Unloaded Records", {
   beforeEach() {
     env = setupStore({
       adapter: DS.JSONAPIAdapter,

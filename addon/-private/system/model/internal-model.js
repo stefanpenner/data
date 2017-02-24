@@ -505,6 +505,7 @@ export default class InternalModel {
     assert("Cannot destroy an internalModel while its record is materialized", !this.record || this.record.get('isDestroyed') || this.record.get('isDestroying'));
 
     this.store._removeFromIdMap(this);
+    this.store._relationshipsPayloads.unload(this.modelName, this.id);
     this._isDestroyed = true;
   }
 

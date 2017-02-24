@@ -118,6 +118,17 @@ export default class RelationshipsPayloads {
     }
   }
 
+  unload(modelName, id) {
+    let modelClass = this._store.modelFor(modelName);
+    let relationshipsByName = get(modelClass, 'relationshipsByName');
+    relationshipsByName.forEach((_, relationshipName) => {
+      let relationshipPayloads = this._getRelationshipPayloads(modelName, relationshipName);
+      if (relationshipPayloads) {
+        relationshipPayloads.unload(modelName, id, relationshipName);
+      }
+    });
+  }
+
   /**
     Find the RelationshipPayloads object for the given relationship.  The same
     RelationshipPayloads object is returned for either side of a relationship.
@@ -152,7 +163,7 @@ export default class RelationshipsPayloads {
     let key = (keyPart1 < keyPart2) ? `${keyPart1}:${keyPart2}` : `${keyPart2}:${keyPart1}`;
 
     if (!this._map[key]) {
-      this._map[key] = new RelationshipPayloads(keyPart1, keyPart2);
+      this._map[key] = new RelationshipPayloads(this._store, keyPart1, keyPart2);
     }
     return this._map[key];
   }
@@ -229,7 +240,8 @@ export default class RelationshipsPayloads {
   @private
 */
 class RelationshipPayloads {
-  constructor(key1, key2) {
+  constructor(store, key1, key2) {
+    this._store = store;
     this._lhsKey = key1;
     this._rhsKey = key2;
 
@@ -257,6 +269,24 @@ class RelationshipPayloads {
 
   push(modelName, id, relationshipName, relationshipData) {
     this._pendingPayloads.push([modelName, id, relationshipName, relationshipData]);
+  }
+
+  unload(modelName, id, relationshipName) {
+    this._flushPending();
+
+    let key = `${modelName}:${relationshipName}`;
+    if (key === this._lhsKey) {
+      this._unload(id, this._lhsPayloads, this._rhsPayloads);
+    } else {
+      this._unload(id, this._rhsPayloads, this._lhsPayloads);
+    }
+  }
+
+  _unload(id, payloads, inversePayloads) {
+    if (!this._inverseLoaded(payloads[id])) {
+      this._removeInverse(id, payloads[id], inversePayloads);
+      delete payloads[id];
+    }
   }
 
   _flushPending() {
@@ -294,6 +324,22 @@ class RelationshipPayloads {
     }
   }
 
+  _inverseLoaded(entry) {
+    let data = entry && entry.payload && entry.payload.data;
+    if (!data) { return false; }
+
+    if (Array.isArray(data)) {
+      for (let i=0; i<data.length; ++i) {
+        if (this._store.hasRecordForId(data[i].type, data[i].id)) {
+          return true;
+        }
+      }
+      return false;
+    } else {
+      return this._store.hasRecordForId(data.type, data.id);
+    }
+  }
+
   _populateInverse(relationshipData, inverseEntry, inversePayloads) {
     if (!relationshipData.data) { return; }
 
@@ -328,7 +374,7 @@ class RelationshipPayloads {
   // TODO: diff rather than removeall addall?
   _removeInverse(id, entry, inversePayloads) {
     let data = entry && entry.payload && entry.payload.data;
-    if (data === undefined) { return; }
+    if (!data) { return; }
 
     if (Array.isArray(data)) {
       for (let i=0; i<data.length; ++i) {
