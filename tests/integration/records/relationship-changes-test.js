@@ -276,7 +276,6 @@ test('Calling push with relationship recalculates computed alias property to fir
 
 test('Calling push with relationship triggers observer of array if the relationship was empty and is added to', function(assert) {
   assert.expect(1);
-  let person = null;
   let observerCount = 0;
 
   run(() => {
@@ -297,12 +296,15 @@ test('Calling push with relationship triggers observer of array if the relations
     });
   });
 
-  person = store.peekRecord('person', 'wat');
+  let person = store.peekRecord('person', 'wat');
 
   run(() => {
-    person.addObserver('siblings.[]', function() {
-      observerCount++;
-    });
+    // materialize the CP, so that the later siblings observer enages (observers
+    // dont have side affects, so they cause a cp, in this case a relationship, to
+    // be accessed themsleves).
+    person.get('siblings');
+
+    person.addObserver('siblings.[]', () => observerCount++);
   });
 
   run(() => {
@@ -324,9 +326,7 @@ test('Calling push with relationship triggers observer of array if the relations
     });
   });
 
-  run(() => {
-    assert.equal(observerCount, 1, 'siblings observer should be triggered once');
-  });
+  assert.equal(observerCount, 1, 'siblings observer should be triggered once');
 });
 
 test('Calling push with relationship triggers observers once if the relationship was not empty and was added to', function(assert) {
